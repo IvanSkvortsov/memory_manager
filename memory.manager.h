@@ -18,6 +18,8 @@ public:
 	virtual void *   allocate( std::size_t bytes ) = 0;
 	virtual void * reallocate( void * space, std::size_t old_size, std::size_t new_size ) = 0;
 	virtual void         free( void * space, std::size_t bytes ) = 0;
+	virtual std::size_t  free_size()const = 0;
+	virtual std::size_t       size()const = 0;
 };
 
 template<std::size_t _Size = 4096u, typename _Container = array_container_struct, typename _Pointer = regular_pointer_struct,

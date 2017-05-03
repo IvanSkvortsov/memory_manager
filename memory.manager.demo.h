@@ -7,8 +7,6 @@
 #include"mmap.pool.h"
 using namespace std;
 
-template<typename T> class Singleton;
-
 inline void randomize_index( int * idx, const size_t size )
 {
 	srand( time(0) );
@@ -19,8 +17,8 @@ inline void randomize_index( int * idx, const size_t size )
 	}
 }
 //template<std::size_t size> using memory_pool = SinglePool<size>;
-template<std::size_t size> using memory_pool = SinglePool<size, mmap_container_struct, offset_pointer_struct>;
-//template<std::size_t size> using memory_pool = SinglePool<size, vector_container_struct, offset_pointer_struct>;
+//template<std::size_t size> using memory_pool = SinglePool<size, mmap_container_struct>, offset_pointer_struct>;
+template<std::size_t size> using memory_pool = SinglePool<size, vector_container_struct>;//, offset_pointer_struct>;
 void demo_mem()
 {
 	const size_t memory_size = 4096;// 4KB
@@ -32,6 +30,7 @@ void demo_mem()
 	cout << "list_head: [" << spool::get_list_head() << "]" << endl;
 	cout << "list_tail: [" << spool::get_list_tail() << "]" << endl;
 	cout << "next_free: [" << spool::get_next_free() << "]" << endl;
+	cout << "free_size: " << spool::free_size() << endl;
 	const size_t size = 12;
 	int index[size];
 	void * pa[size];
@@ -62,6 +61,7 @@ void demo_mem()
 	cout << "next_free: [" << spool::get_next_free() << "]" << endl;
 	cout << "nf->prev : [" << spool::get_next_free()->get_prev() << "]" << endl;
 	cout << "nf->next : [" << spool::get_next_free()->get_next() << "]" << endl;
+	cout << "free_size: " << spool::free_size() << endl;
 	cout << "--------------------------------------------------------------------" << endl;
 	cout << "END" << endl;
 }
