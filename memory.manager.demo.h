@@ -14,6 +14,7 @@ inline void randomize_index( int * idx, const size_t size )
 	{
 		int n = rand()%size;
 		swap( idx[i], idx[n] );
+		//idx[i] = size - i - 1;
 	}
 }
 //template<std::size_t size> using memory_pool = SinglePool<size>;
@@ -27,24 +28,19 @@ void demo_mem()
 	typedef typename spool::pool_type pool_type;
 	typedef typename pool_type::node_type node_type;
 
-	cout << "list_head: [" << spool::get_list_head() << "]" << endl;
-	cout << "list_tail: [" << spool::get_list_tail() << "]" << endl;
-	cout << "next_free: [" << spool::get_next_free() << "]" << endl;
-	cout << "free_size: " << spool::free_size() << endl;
+	spool::info();
 	const size_t size = 12;
 	int index[size];
 	void * pa[size];
 	for( int i = 0; i < size; ++i)
 	{
 		index[i] = i;
-		pa[i] = spool::allocate( sizeof(double) + size_t(i/4) );
+		pa[i] = spool::allocate( sizeof(double) * (i+1) );
 	}
-	cout << "amount of nodes: " << node_type::get_count() << endl;
 	double & d = *(double*)(pa[0]);
 	d = 3.14153;
 	cout << "double   : [" << &d  << "] := " << d << endl;
-	cout << "next_free: [" << spool::get_next_free() << "]" << endl;
-	cout << "free_size: " << spool::free_size() << endl;
+	spool::info();
 	randomize_index( index, size );
 	node_pointer lh = spool::get_list_head(), le = spool::get_list_tail();
 	int k = 0;
@@ -58,10 +54,7 @@ void demo_mem()
 	{
 		spool::free( pa[ index[i] ] );
 	}
-	cout << "next_free: [" << spool::get_next_free() << "]" << endl;
-	cout << "nf->prev : [" << spool::get_next_free()->get_prev() << "]" << endl;
-	cout << "nf->next : [" << spool::get_next_free()->get_next() << "]" << endl;
-	cout << "free_size: " << spool::free_size() << endl;
+	spool::info();
 	cout << "--------------------------------------------------------------------" << endl;
 	cout << "END" << endl;
 }

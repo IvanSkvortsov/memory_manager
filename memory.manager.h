@@ -18,8 +18,8 @@ public:
 	virtual void *   allocate( std::size_t bytes ) = 0;
 	virtual void * reallocate( void * space, std::size_t old_size, std::size_t new_size ) = 0;
 	virtual void         free( void * space, std::size_t bytes ) = 0;
+	virtual std::size_t  size()const = 0;
 	virtual std::size_t  free_size()const = 0;
-	virtual std::size_t       size()const = 0;
 };
 
 template<std::size_t _Size = 4096u, typename _Container = array_container_struct, typename _Pointer = regular_pointer_struct,
@@ -42,7 +42,7 @@ public:
 	char_pointer  begin()const{ return listHead->begin; }
 	char_pointer   data()const{ return begin(); }
 	char_pointer    end()const{ return begin() + size(); }
-	size_type      size()const{ return listHead->get_capacity(); }
+	size_type      size()const{ return (char*)listTail - listHead->begin; }
 	size_type free_size()const{ return nextFree->get_capacity(); }
 	node_pointer get_next_free()const{ return nextFree; }
 	node_pointer get_list_head()const{ return listHead; }
@@ -60,7 +60,7 @@ private:
 	void node_free( node_pointer p );
 	container_type pool;
 	node_pointer listHead, listTail;
-	node_pointer nextFree;
+	node_pointer headFree, nextFree;
 };
 
 template<std::size_t _Size, typename _Container, typename _Pointer, typename _Node>
@@ -71,7 +71,7 @@ inline Pool<_Size, _Container, _Pointer, _Node>::Pool():
 	listTail( node_pointer((char*)container_type::data() + container_type::size() - sizeof(node_type)) ),
 	*/
 	pool(), listHead( (node_type *)pool.data() ), listTail( node_pointer((char*)pool.data() + pool.size() - sizeof(node_type)) ),
-	nextFree( listHead )
+	headFree( listHead ), nextFree( listHead )
 {
 	__log_info__(this);
 	new (listHead) node_type( nullptr, listTail );
@@ -81,10 +81,12 @@ template<std::size_t _Size, typename _Container, typename _Pointer, typename _No
 inline void * Pool<_Size, _Container, _Pointer, _Node>::allocate( size_type bytes )
 {
 	__log_info__(this);
-	if( nextFree->get_capacity() >= bytes )
+	if( free_size() >= bytes + sizeof(node_type) )
 	{
 		node_pointer n = nextFree;
 		nextFree = new(n->begin + bytes) node_type;
+		if( headFree >= n )
+			headFree = nextFree;
 		n->append( nextFree );
 		return n->begin;
 	} else {
@@ -116,18 +118,36 @@ inline void Pool<_Size, _Container, _Pointer, _Node>::free( void * space, size_t
 template<std::size_t _Size, typename _Container, typename _Pointer, typename _Node>
 inline void Pool<_Size, _Container, _Pointer, _Node>::node_free( node_pointer p )
 {
-	if( p->get_next() == nextFree )
+	assert( p < nextFree );
+	assert( nextFree < listTail );
+	if( headFree == nextFree )// first call of node_free
+	{
+		headFree = p;
+	}
+	else if( p < headFree )
+	{
+		node_type::remove( headFree );
+		headFree = p;
+	}
+	else if( p > headFree )
+	{
+		node_type::remove( p );
+	} else {
+		__error_msg__( this, "invalid node" );
+		exit(1);
+	}
+	if( headFree->get_next() == nextFree )
 	{
 		node_type::remove( nextFree );
-		nextFree = p;
+		nextFree = headFree;
 	}
-	else
-		node_type::remove( p );
 }
 template<std::size_t _Size = 4096u, typename _Container = array_container_struct, typename _Pointer = regular_pointer_struct,
 	typename _Node = Node_t<_Pointer> >
 class SinglePool
 {
+	SinglePool();
+	~SinglePool(){info();}
 public:
 	typedef std::size_t size_type;
 	typedef SinglePool single_pool_type;
@@ -162,6 +182,21 @@ public:
 	static node_pointer get_next_free(){ return get_pool().get_next_free(); }
 	static node_pointer get_list_head(){ return get_pool().get_list_head(); }
 	static node_pointer get_list_tail(){ return get_pool().get_list_tail(); }
+
+	static void info( std::ostream & out = std::cout )
+	{
+		out << "pool address   : [" << &get_pool() << "]" << std::endl;
+		out << "amount of nodes: " << node_type::get_count() << std::endl;
+		out << "size           : " << size() << " bytes" << std::endl;
+		out << "list_head      : [" << get_list_head() << "]" << std::endl;
+		out << "list_tail      : [" << get_list_tail() << "]" << std::endl;
+		out << "free_size      : " << free_size() << " bytes" << std::endl;
+		out << "next_free      : [" << get_next_free() << "]" << std::endl;
+		out << "next_free->prev: [" << get_next_free()->get_prev() << "]" << std::endl;
+		out << "next_free->next: [" << get_next_free()->get_next() << "]" << std::endl;
+		out << "free_capacity  : " << (char*)get_list_tail() - (char*)get_next_free() << " bytes" << std::endl;
+		out << "----------------" << std::endl;
+	}
 };
 
 #endif//__MEMORY_POOL_H__
