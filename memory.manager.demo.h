@@ -18,8 +18,8 @@ inline void randomize_index( int * idx, const size_t size )
 	}
 }
 //template<std::size_t size> using memory_pool = SinglePool<size>;
-//template<std::size_t size> using memory_pool = SinglePool<size, mmap_container_struct>, offset_pointer_struct>;
-template<std::size_t size> using memory_pool = SinglePool<size, vector_container_struct>;//, offset_pointer_struct>;
+template<std::size_t size> using memory_pool = SinglePool<size, mmap_container_struct>;//, offset_pointer_struct>;
+//template<std::size_t size> using memory_pool = SinglePool<size, vector_container_struct>;//, offset_pointer_struct>;
 void demo_mem()
 {
 	const size_t memory_size = 4096;// 4KB
@@ -27,6 +27,8 @@ void demo_mem()
 	typedef typename spool::node_pointer node_pointer;
 	typedef typename spool::pool_type pool_type;
 	typedef typename pool_type::node_type node_type;
+	typedef typename pool_type::base_type base_type;
+	base_type * pool_p = &spool::get_pool();
 
 	spool::info();
 	const size_t size = 12;
@@ -35,7 +37,8 @@ void demo_mem()
 	for( int i = 0; i < size; ++i)
 	{
 		index[i] = i;
-		pa[i] = spool::allocate( sizeof(double) * (i+1) );
+		//pa[i] = spool::allocate( sizeof(double) * (i+1) );
+		pa[i] = pool_p->allocate( sizeof(double) * (i+1) );
 	}
 	double & d = *(double*)(pa[0]);
 	d = 3.14153;

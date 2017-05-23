@@ -10,7 +10,8 @@
 //#include<sys/stat.h>// stat, fstat
 #include<sys/mman.h>// mmap, munmap
 //#include<string.h>// memset
-#include"fman.h"// size( fd ) - get file size by file descriptor fd
+//#include"fman.h"// size( fd ) - get file size by file descriptor fd
+#include<sys/stat.h>// struct stat, fstat
 
 #include"log.info.start.h"
 class mman
@@ -104,12 +105,21 @@ inline int mman::open( int __fd, size_type __size, int __prot, int __flags, off_
 	}
 	off_type __file_size = __size;
 	if( !(__flags & mman::map_anonymous()) )
-		__file_size = fman::size( __fd );
+	{
+		struct stat __stat;
+		if( fstat( __fd, &__stat ) )
+		{
+			__error_msg__( this, "mapping failed, in fstat" );
+			info( __fd, __size, __prot, __flags, __offset, std::cerr );
+			return -1;
+		}
+		else __file_size = __stat.st_size;
+	}
 	if( __offset > __file_size )
 	{
 		__error_msg__( this, "mapping failed, invalid offset" );
 		std::cerr << "file size: " << __file_size << std::endl;
-		info( __fd, __size, __prot, __flags, __offset );
+		info( __fd, __size, __prot, __flags, __offset, std::cerr );
 		return -1;
 	}
 	else if( __size + __offset > __file_size )
@@ -120,7 +130,7 @@ inline int mman::open( int __fd, size_type __size, int __prot, int __flags, off_
 	{
 		__error_msg__( this, "mapping failed" );
 		std::cerr << "data: [" << data() << "]" << std::endl;
-		info( __fd, __size, __prot, __flags, __offset );
+		info( __fd, __size, __prot, __flags, __offset, std::cerr );
 		return -1;
 	}
 	_size = __size;

@@ -12,6 +12,7 @@
 #include"log.info.start.h"
 //#include"log.info.dummy.h"
 
+#ifdef  __log_info__
 template<typename OUT, typename IN> inline static OUT force_cast( IN in )
 {
 	union{
@@ -21,6 +22,9 @@ template<typename OUT, typename IN> inline static OUT force_cast( IN in )
 	return u.out;
 }
 template<typename IN> inline static void * void_cast( IN in ){ return force_cast<void *, IN>( in ); }
+#endif
+
+//#define __FMAN_INFO__
 
 struct fman
 {
@@ -53,7 +57,7 @@ struct fman
 	void reserve( off_type __size ){ return fman::reserve( fd(), __size ); }
 	void write( const char * __str, std::size_t __size ){ ::write( fd(), __str, __size ); }
 	void read( char * __str, std::size_t __size ){ ::read( fd(), __str, __size ); }
-	void lseek( off_type __pos, int __seek_type = seek_set() ){ ::lseek( fd(), __pos, __seek_type ); }
+	void lseek( off_type __pos, int __seek_way = seek_set() ){ ::lseek( fd(), __pos, __seek_way ); }
 	// file fields:
 	const int fd()const{ return this->_fd; }
 	const int flags()const{ return this->_flags; }
@@ -79,46 +83,52 @@ struct fman
 	static mode_type rw_user(){ return S_IRUSR | S_IWUSR; }
 	static mode_type rd_user(){ return S_IRUSR; }
 	static mode_type wr_user(){ return S_IWUSR; }
+	static mode_type  x_user(){ return S_IXUSR; }
 	// group mode:
 	static mode_type rwx_group(){ return S_IRWXG; }
 	static mode_type rw_group(){ return S_IRGRP | S_IWGRP; }
 	static mode_type rd_group(){ return S_IRGRP; }
 	static mode_type wr_group(){ return S_IWGRP; }
+	static mode_type  x_group(){ return S_IXGRP; }
 	// other mode:
 	static mode_type rwx_other(){ return S_IRWXO; }
 	static mode_type rw_other(){ return S_IROTH | S_IWOTH; }
 	static mode_type rd_other(){ return S_IROTH; }
 	static mode_type wr_other(){ return S_IWOTH; }
+	static mode_type  x_other(){ return S_IXOTH; }
 	// seek
 	static int seek_set(){ return SEEK_SET; }
 	static int seek_cur(){ return SEEK_CUR; }
 	static int seek_end(){ return SEEK_END; }
 	// info
+#ifdef  __FMAN_INFO__
 	static void pub_info( int __flags, int         __fd, std::ostream & out = std::cout ){ info( out, __flags, mode( __fd ) ); }
 	static void info_pub( int __flags, mode_type __mode, std::ostream & out = std::cout ){ info( out, __flags, __mode ); }
 	void pub_info( std::ostream & out = std::cout )const{ info( out, flags(), mode( fd() ), this ); }
+#else
+	static void pub_info( int __flags, int         __fd, std::ostream & out = std::cout ){}
+	static void info_pub( int __flags, mode_type __mode, std::ostream & out = std::cout ){}
+	void pub_info( std::ostream & out = std::cout )const{}
+#endif
 private:
 	int _fd, _flags;
-	static const char * creat_flags_str[];
-	static const char * open_flags_str[];
-
-	enum creat_flags_t{ e_creat, e_creat_trunc, e_creat_excl, e_trunc, e_excl };
-	enum open_flags_t{ e_read_only, e_write_only, e_read_write };
-
 	explicit fman( int __fd ): _fd( __fd ){}
 	fman( fman const & );
 	fman & operator=( fman const & );
-
 	static void info( std::ostream & out, int __flags, mode_type __mode, void const * addr = nullptr );
+#ifdef  __FMAN_INFO__
+	enum creat_flags_t{ e_creat, e_creat_trunc, e_creat_excl, e_trunc, e_excl };
+	enum open_flags_t{ e_read_only, e_write_only, e_read_write };
+	static const char * creat_flags_str[];
+	static const char * open_flags_str[];
 	static const char * get_creat_flags( int __flags );
 	static const char * get_open_flags( int __flags );
+#endif
 };
-
-const char * fman::creat_flags_str[] = { "creat", "creat_trunc", "creat_excl", "trunc", "excl" };
-const char * fman::open_flags_str[] = {"read_only", "write_only", "read_write" };
 
 inline void fman::info( std::ostream & out, int __flags, mode_type __mode, void const * addr)// static
 {
+#ifdef  __FMAN_INFO__
 	if( addr )
 	{
 		out << "[" << addr << "] fman" << std::endl;
@@ -127,7 +137,12 @@ inline void fman::info( std::ostream & out, int __flags, mode_type __mode, void 
 	out << "open  flags : '" << get_open_flags( __flags ) << "'" << std::endl;
 	out << "creat flags : '" << get_creat_flags( __flags ) << "'" << std::endl;
 	out << "access mode : '" << std::oct << (__mode & (rwx_user() | rwx_group() | rwx_other()) ) << "'" << std::dec << std::endl;
+#endif
 }
+#ifdef  __FMAN_INFO__
+const char * fman::creat_flags_str[] = { "creat", "creat_trunc", "creat_excl", "trunc", "excl" };
+const char * fman::open_flags_str[] = {"read_only", "write_only", "read_write" };
+
 inline const char * fman::get_creat_flags( int __flags )// static
 {
 	creat_flags_t x = e_creat_trunc;
@@ -151,6 +166,7 @@ inline const char * fman::get_open_flags( int __flags )// static
 	else if( __flags & write_only() ) x = e_write_only;
 	return open_flags_str[x];
 }
+#endif//__FMAN_INFO__
 
 inline int fman::open( const char * __name, int __flags, mode_type __mode )
 {

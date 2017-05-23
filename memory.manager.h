@@ -11,10 +11,10 @@
 
 #include"error.msg.h"
 #include"log.info.short.h"
-class PB_t
+class BasePool
 {
 public:
-	virtual ~PB_t(){ __log_info__(this); }
+	virtual ~BasePool(){ __log_info__(this); }
 	virtual void *   allocate( std::size_t bytes ) = 0;
 	virtual void * reallocate( void * space, std::size_t old_size, std::size_t new_size ) = 0;
 	virtual void         free( void * space, std::size_t bytes ) = 0;
@@ -24,9 +24,10 @@ public:
 
 template<std::size_t _Size = 4096u, typename _Container = array_container_struct, typename _Pointer = regular_pointer_struct,
 	typename _Node = Node_t<_Pointer> >
-class Pool: public PB_t//, public _Container::template wraper<_Size>::container_type
+class Pool: public BasePool//, public _Container::template wraper<_Size>::container_type
 {
 public:
+	typedef BasePool base_type, * base_pointer;
 	typedef _Node node_type;
 	typedef typename node_type::pointer_struct pointer_struct;
 	typedef std::size_t size_type;
